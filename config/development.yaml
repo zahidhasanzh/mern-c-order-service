@@ -4,4 +4,6 @@ server:
 auth:
   jwksUri: http://localhost:5501/.well-known/jwks.json
 database:
-  url: mongodb://root:root@localhost:27017/order_db?authSource=admin&w=1
+  url: mongodb+srv://zahidhasanzh004:uhz1IhzSSf45wawG@cluster0.bpjfvnf.mongodb.net
+  
+# uhz1IhzSSf45wawG
