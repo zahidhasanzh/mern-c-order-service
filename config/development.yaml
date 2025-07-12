@@ -6,4 +6,6 @@ auth:
 database:
   url: mongodb+srv://zahidhasanzh004:uhz1IhzSSf45wawG@cluster0.bpjfvnf.mongodb.net
   
-# uhz1IhzSSf45wawG
+frontend:
+  adminUI: http://localhost:5173
+  clientUI: http://localhost:3000
