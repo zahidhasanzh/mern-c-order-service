@@ -3,8 +3,17 @@ export interface Coupon {
   title: string;
   code: string;
   validUpto: Date;
-  tenantId: number;
+  tenantId: string;
   discount: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+
+export interface Filter {
+    tenantId?: string;
+}
+export interface Paginatequery {
+    page: number;
+    limit: number;
 }
