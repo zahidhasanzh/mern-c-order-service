@@ -1,5 +1,6 @@
 import { Request } from "express";
 
+
 export type AuthCookie = {
   accessToken: string;
 };
@@ -28,4 +29,17 @@ export interface ProductPricingCache {
 export interface ProductMessage {
   id: string;
   priceConfiguration: PriceConfiguration;
+}
+
+
+export interface ToppingPriceCache {
+  toppingId: string;
+  price: number;
+  tenantId: string;
+}
+
+export interface ToppingMessage {
+    id: string;
+    price: number;
+    tenantId: string;
 }

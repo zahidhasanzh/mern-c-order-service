@@ -1,5 +1,6 @@
 import { Consumer, EachMessagePayload, Kafka } from "kafkajs";
 import { MessageBroker } from "../types/broker";
+import { handleToppingUpdate } from "../toppingCache/toppingUpdateHandler";
 import { handleProdcutUpdate } from "../productCache/productUpdateHandler";
 
 export class KafkaBroker implements MessageBroker {
@@ -25,28 +26,39 @@ export class KafkaBroker implements MessageBroker {
     await this.consumer.disconnect();
   }
 
-  async consumeMessage(topics: string[], fromBeginning: boolean = false){
-    await this.consumer.subscribe({topics, fromBeginning})
+  async consumeMessage(topics: string[], fromBeginning: boolean = false) {
+    await this.consumer.subscribe({ topics, fromBeginning });
 
     await this.consumer.run({
-      eachMessage: async ({topic, partition, message}: EachMessagePayload) => {
-        //logic to handle incoming message.
+      eachMessage: async ({
+        topic,
+        partition,
+        message,
+      }: EachMessagePayload) => {
 
-        switch(topic){
-          case 'product':
+        console.log({
+          value: message.value.toString(),
+          topic,
+          partition,
+        });
+
+        switch (topic) {
+          case "product":
             await handleProdcutUpdate(message.value.toString());
             return;
-          default: 
-            console.log('Doing nothing...')
+          case "topping":
+            await handleToppingUpdate(message.value.toString());
+            return;
+          default:
+            console.log("Doing nothing...");
         }
 
-
-          console.log({
-            value: message.value.toString(),
-            topic,
-            partition
-          });
-      }
-    })
+        console.log({
+          value: message.value.toString(),
+          topic,
+          partition,
+        });
+      },
+    });
   }
 }
