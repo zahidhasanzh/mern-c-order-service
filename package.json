@@ -24,6 +24,7 @@
     "kafkajs": "^2.2.4",
     "mongoose": "^8.16.3",
     "mongoose-aggregate-paginate-v2": "^1.1.4",
+    "stripe": "^18.3.0",
     "uuid": "^9.0.1",
     "winston": "^3.17.0"
   },
