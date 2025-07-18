@@ -45,7 +45,7 @@ export class OrderController {
     const discountAmount = Math.round((totalPrice * discountPercentage) / 100);
 
     const priceAfterDicount = totalPrice - discountAmount;
-    const TAXES_PERCENT = 18;
+    const TAXES_PERCENT = 15;
     const DELIVERY_CHARGES = 2;
 
     const taxes = Math.round((priceAfterDicount * TAXES_PERCENT) / 100);
