@@ -1,6 +1,11 @@
 import Stripe from "stripe";
 import config from "config";
-import { CustomMetadata, PaymentGW, PaymentOptions, VerifiedSession } from "./paymentType";
+import {
+  CustomMetadata,
+  PaymentGW,
+  PaymentOptions,
+  VerifiedSession,
+} from "./paymentType";
 
 export class StripeGW implements PaymentGW {
   private stripe: Stripe;
@@ -16,7 +21,7 @@ export class StripeGW implements PaymentGW {
         metadata: {
           orderId: options.orderId,
         },
-        billing_address_collection: 'required',
+        billing_address_collection: "required",
         // todo: In future, Capture structured address from customer
         // payment_intent_data: {
         //   shipping: {
@@ -43,8 +48,8 @@ export class StripeGW implements PaymentGW {
           },
         ],
         mode: "payment",
-        success_url: `${config.get("frontend.clientUI")}/payment?success=true&orderId=${options.orderId}`,
-        cancel_url: `${config.get("frontend.clientUI")}/payment?success=false&orderId=${options.orderId}`,
+        success_url: `${config.get("frontend.clientUI")}/payment?success=true&orderId=${options.orderId}&restaurantId=${options.tenantId}`,
+        cancel_url: `${config.get("frontend.clientUI")}/payment?success=false&orderId=${options.orderId}&restaurantId=${options.tenantId}`,
       },
       { idempotencyKey: options.idempotenencyKey },
     );
@@ -55,14 +60,14 @@ export class StripeGW implements PaymentGW {
     };
   }
 
-  async getSession(id:string) {
-    const session = await this.stripe.checkout.sessions.retrieve(id)
+  async getSession(id: string) {
+    const session = await this.stripe.checkout.sessions.retrieve(id);
     const verifiedSession: VerifiedSession = {
-       id: session.id,
-       paymentStatus: session.payment_status,
-       metadata: session.metadata as unknown as CustomMetadata,
+      id: session.id,
+      paymentStatus: session.payment_status,
+      metadata: session.metadata as unknown as CustomMetadata,
     };
-     
+
     return verifiedSession;
   }
 }
