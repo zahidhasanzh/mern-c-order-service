@@ -20,6 +20,7 @@ export class StripeGW implements PaymentGW {
         //customer_email: options.email
         metadata: {
           orderId: options.orderId,
+          restaurantId: options.tenantId
         },
         billing_address_collection: "required",
         // todo: In future, Capture structured address from customer
