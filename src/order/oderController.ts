@@ -143,48 +143,98 @@ export class OrderController {
     return res.json(orders);
   };
 
+  //   getSingle = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  //   const orderId = req.params.orderId;
+  //   const { sub: userId, role, tenant: tenantId } = req.auth;
+
+  //   const orderForAuth = await orderModel.findById(orderId);
+
+  //   if (!orderForAuth) {
+  //     return next(createHttpError(400, "Order does not exist."));
+  //   }
+
+  //   if (role === "admin") {
+  //     // pass
+  //   } else if (role === "manager") {
+  //     if (orderForAuth.tenantId !== tenantId) {
+  //       return next(createHttpError(403, "Operation not permitted"));
+  //     }
+  //   } else if (role === "customer") {
+  //     const customer = await customerModel.findOne({ userId });
+  //     if (!customer || orderForAuth.customerId?.toString() !== customer._id.toString()) {
+  //       return next(createHttpError(403, "Operation not permitted"));
+  //     }
+  //   } else {
+  //     return next(createHttpError(403, "Operation not permitted"));
+  //   }
+
+  //   const rawFields = req.query.fields?.toString() || "";
+  //   const fields = rawFields.split(",").filter(Boolean);
+
+  //   const selectFields = fields.join(" ");
+
+  //   const order = await orderModel
+  //     .findById(orderId)
+  //     .select(selectFields)
+  //     .lean();
+
+  //   return res.json(order);
+  // };
+
   getSingle = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const orderId = req.params.orderId;
-  const { sub: userId, role, tenant: tenantId } = req.auth;
+    const orderId = req.params.orderId;
+    const { sub: userId, role, tenant: tenantId } = req.auth;
 
+    const fields = req.query.fields
+      ? req.query.fields.toString().split(",")
+      : []; // ["orderStatus", "paymentStatus"]
 
-  const orderForAuth = await orderModel.findById(orderId);
+    const projection = fields.reduce(
+      (acc, field) => {
+        acc[field] = 1;
+        return acc;
+      },
+      { customerId: 1 } as Record<string, 1>,
+    );
 
-  if (!orderForAuth) {
-    return next(createHttpError(400, "Order does not exist."));
-  }
+    // {
+    //   orderStatus: 1,
+    //   PaymentStatus: 1,
+    // }
 
+    const order = await orderModel
+      .findOne({ _id: orderId }, projection)
+      .populate("customerId")
+      .exec();
 
-  if (role === "admin") {
-    // pass
-  } else if (role === "manager") {
-    if (orderForAuth.tenantId !== tenantId) {
-      return next(createHttpError(403, "Operation not permitted"));
+    if (!order) {
+      return next(createHttpError(400, "Order does not exists."));
     }
-  } else if (role === "customer") {
-    const customer = await customerModel.findOne({ userId });
-    if (!customer || orderForAuth.customerId?.toString() !== customer._id.toString()) {
-      return next(createHttpError(403, "Operation not permitted"));
+
+    // What roles can access this endpoint: Admin, manager (for their own restaurant), customer (own order)
+    if (role === "admin") {
+      return res.json(order);
     }
-  } else {
-    return next(createHttpError(403, "Operation not permitted"));
-  }
 
-  const rawFields = req.query.fields?.toString() || "";
-  const fields = rawFields.split(",").filter(Boolean);
+    const myRestaurantOrder = order.tenantId === tenantId;
+    if (role === "manager" && myRestaurantOrder) {
+      return res.json(order);
+    }
 
-  const selectFields = fields.join(" ");
+    if (role === "customer") {
+      const customer = await customerModel.findOne({ userId });
 
-  const order = await orderModel
-    .findById(orderId)
-    .select(selectFields)
-    .lean();
+      if (!customer) {
+        return next(createHttpError(400, "No customer found."));
+      }
 
-  return res.json(order);
-};
+      if (order.customerId._id.toString() === customer._id.toString()) {
+        return res.json(order);
+      }
+    }
 
-
-
+    return next(createHttpError(403, "Operation not permitted."));
+  };
 
   private calculateTotal = async (cart: CartItem[]) => {
     const productIds = cart.map((item) => item._id);
