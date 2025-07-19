@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import {Request as AuthRequest} from "express-jwt"
+import { Request as AuthRequest } from "express-jwt";
 import {
   CartItem,
   ProductPricingCache,
@@ -7,11 +7,10 @@ import {
   ToppingPriceCache,
 } from "../types";
 import productCacheModel from "../productCache/productCacheModel";
-import type { ProjectionType } from "mongoose";
 import toppingCacheModel from "../toppingCache/toppingCacheModel";
 import couponModel from "../coupon/couponModel";
 import orderModel from "./orderModel";
-import { Order, OrderStatus, PaymentMode, PaymentStatus } from "./orderTypes";
+import { OrderStatus, PaymentMode, PaymentStatus } from "./orderTypes";
 import idempotencyModel from "../itempotency/idempotencyModel";
 import mongoose from "mongoose";
 import createHttpError from "http-errors";
@@ -118,74 +117,70 @@ export class OrderController {
 
       return res.json({ paymentUrl: session.paymentUrl });
     }
-    
+
     await this.broker.sendMessage("order", JSON.stringify(newOrder));
     // todo: update order document -> paymentId -> sessionId
     return res.json({ paymentUrl: null });
   };
 
-  getMine = async (req: AuthRequest, res:Response, next: NextFunction) => {
+  getMine = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const userId = req.auth.sub;
-    if(!userId){
-      return next(createHttpError(400, "No userId found."))
+    if (!userId) {
+      return next(createHttpError(400, "No userId found."));
     }
     // todo: Add error handling
-    const customer = await customerModel.findOne({userId});
+    const customer = await customerModel.findOne({ userId });
 
-    if(!customer){
-       return next(createHttpError(400, "No customer found."))
+    if (!customer) {
+      return next(createHttpError(400, "No customer found."));
     }
 
     // todo: implement pagination.
-    const orders = await orderModel.find({customerId: customer._id}, {cart: 0});
-    return res.json(orders)
-  }
+    const orders = await orderModel.find(
+      { customerId: customer._id },
+      { cart: 0 },
+    );
+    return res.json(orders);
+  };
 
- getSingle = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  getSingle = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const orderId = req.params.orderId;
   const { sub: userId, role, tenant: tenantId } = req.auth;
 
-  const rawFields = req.query.fields;
-  let fields: string[] = [];
 
-  if (typeof rawFields === "string") {
-    fields = rawFields.split(",");
-  } else if (Array.isArray(rawFields)) {
-    fields = rawFields as string[];
-  }
+  const orderForAuth = await orderModel.findById(orderId);
 
-   if (!fields.includes("customerId")) fields.push("customerId");
-
-  const projection: ProjectionType<Order> = fields.reduce((acc, field) => {
-    acc[field] = 1;
-    return acc;
-  }, {} as ProjectionType<Order>);
-
-  const order = await orderModel.findOne({ _id: orderId }, projection).lean();
-
-  if (!order) {
+  if (!orderForAuth) {
     return next(createHttpError(400, "Order does not exist."));
   }
 
+
   if (role === "admin") {
-    return res.json(order);
-  }
-
-  if (role === "manager" && order.tenantId === tenantId) {
-    return res.json(order);
-  }
-
-  if (role === "customer") {
+    // pass
+  } else if (role === "manager") {
+    if (orderForAuth.tenantId !== tenantId) {
+      return next(createHttpError(403, "Operation not permitted"));
+    }
+  } else if (role === "customer") {
     const customer = await customerModel.findOne({ userId });
-    if (!customer) {
-      return next(createHttpError(400, "No customer found"));
+    if (!customer || orderForAuth.customerId?.toString() !== customer._id.toString()) {
+      return next(createHttpError(403, "Operation not permitted"));
     }
-    if (order.customerId?.toString() === customer._id.toString()) {
-      return res.json(order);
-    }
+  } else {
+    return next(createHttpError(403, "Operation not permitted"));
   }
 
-  return next(createHttpError(403, "Operation not permitted"));
+  const rawFields = req.query.fields?.toString() || "";
+  const fields = rawFields.split(",").filter(Boolean);
+
+  const selectFields = fields.join(" ");
+
+  const order = await orderModel
+    .findById(orderId)
+    .select(selectFields)
+    .lean();
+
+  return res.json(order);
 };
 
 
@@ -280,6 +275,4 @@ export class OrderController {
     }
     return 0;
   };
-
-
 }
