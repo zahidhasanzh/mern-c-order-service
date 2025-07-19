@@ -7,10 +7,11 @@ import {
   ToppingPriceCache,
 } from "../types";
 import productCacheModel from "../productCache/productCacheModel";
+import type { ProjectionType } from "mongoose";
 import toppingCacheModel from "../toppingCache/toppingCacheModel";
 import couponModel from "../coupon/couponModel";
 import orderModel from "./orderModel";
-import { OrderStatus, PaymentMode, PaymentStatus } from "./orderTypes";
+import { Order, OrderStatus, PaymentMode, PaymentStatus } from "./orderTypes";
 import idempotencyModel from "../itempotency/idempotencyModel";
 import mongoose from "mongoose";
 import createHttpError from "http-errors";
@@ -139,6 +140,56 @@ export class OrderController {
     const orders = await orderModel.find({customerId: customer._id}, {cart: 0});
     return res.json(orders)
   }
+
+ getSingle = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const orderId = req.params.orderId;
+  const { sub: userId, role, tenant: tenantId } = req.auth;
+
+  const rawFields = req.query.fields;
+  let fields: string[] = [];
+
+  if (typeof rawFields === "string") {
+    fields = rawFields.split(",");
+  } else if (Array.isArray(rawFields)) {
+    fields = rawFields as string[];
+  }
+
+   if (!fields.includes("customerId")) fields.push("customerId");
+
+  const projection: ProjectionType<Order> = fields.reduce((acc, field) => {
+    acc[field] = 1;
+    return acc;
+  }, {} as ProjectionType<Order>);
+
+  const order = await orderModel.findOne({ _id: orderId }, projection).lean();
+
+  if (!order) {
+    return next(createHttpError(400, "Order does not exist."));
+  }
+
+  if (role === "admin") {
+    return res.json(order);
+  }
+
+  if (role === "manager" && order.tenantId === tenantId) {
+    return res.json(order);
+  }
+
+  if (role === "customer") {
+    const customer = await customerModel.findOne({ userId });
+    if (!customer) {
+      return next(createHttpError(400, "No customer found"));
+    }
+    if (order.customerId?.toString() === customer._id.toString()) {
+      return res.json(order);
+    }
+  }
+
+  return next(createHttpError(403, "Operation not permitted"));
+};
+
+
+
 
   private calculateTotal = async (cart: CartItem[]) => {
     const productIds = cart.map((item) => item._id);
