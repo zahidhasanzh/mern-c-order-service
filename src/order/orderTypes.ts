@@ -3,21 +3,21 @@ import { CartItem } from "../types";
 
 export enum PaymentMode {
   CARD = "card",
-  CASH = "cash"
+  CASH = "cash",
 }
 
 export enum OrderStatus {
-  RECEIVED = 'recived',
-  CONFIRMED = 'confirmed',
-  PREPARED = 'prepared',
-  OUT_FOR_DELIVERY = 'out_for_delivery',
-  DELIVERED = 'delivered'
+  RECEIVED = "received",
+  CONFIRMED = "confirmed",
+  PREPARED = "prepared",
+  OUT_FOR_DELIVERY = "out_for_delivery",
+  DELIVERED = "delivered",
 }
 
 export enum PaymentStatus {
-   PENDING = 'pending',
-   PAID = 'paid',
-   FAILED = 'failed'
+  PENDING = "pending",
+  PAID = "paid",
+  FAILED = "failed",
 }
 
 export interface Order {
