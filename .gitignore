@@ -131,3 +131,4 @@ dist
 
 logs
 /config
+.DS_Store
