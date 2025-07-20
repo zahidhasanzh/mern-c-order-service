@@ -148,7 +148,7 @@ export class OrderController {
 
     if (role === ROLES.MANAGER) {
       const orders = await orderModel
-        .find({ tenantId: userTenantId} , {}, { sort: { createdAt: -1 } })
+        .find({ tenantId: userTenantId }, {}, { sort: { createdAt: -1 } })
         .populate("customerId")
         .exec();
       return res.json(orders);
@@ -268,6 +268,40 @@ export class OrderController {
     }
 
     return next(createHttpError(403, "Operation not permitted."));
+  };
+
+  changeStatus = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const { role, tenant: tenantId } = req.auth;
+    const orderId = req.params.orderId;
+
+    if (role === ROLES.MANAGER || role === ROLES.ADMIN) {
+      const order = await orderModel.findOne({ _id: orderId });
+      if (!order) {
+        return next(createHttpError(400, "Order not found."));
+      }
+
+      const isMyRestaurantOrder = order.tenantId === tenantId;
+      if (role === ROLES.MANAGER && !isMyRestaurantOrder) {
+        return next(createHttpError(403, "Not allowed"));
+      }
+
+      const updatedOrder = await orderModel.findOneAndUpdate(
+        { _id: orderId },
+        //todo: req.body.status <- put proper validation.
+        { orderStatus: req.body.status },
+        {new: true},
+      );
+
+      //todo: send to kafka
+
+      return res.json({_id: updatedOrder._id})
+    }
+
+    return next(createHttpError(403, "Not allowed."))
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
