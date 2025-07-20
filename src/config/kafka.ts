@@ -22,7 +22,7 @@ export class KafkaBroker implements MessageBroker {
     await this.consumer.connect();
   }
 
-   /**
+  /**
    * Connect the producer
    */
   async connectProducer() {
@@ -36,7 +36,7 @@ export class KafkaBroker implements MessageBroker {
     await this.consumer.disconnect();
   }
 
-   /**
+  /**
    * Disconnect the producer
    */
   async disconnectProducer() {
@@ -46,17 +46,23 @@ export class KafkaBroker implements MessageBroker {
   }
 
   /**
-     *
-     * @param topic - the topic to send the message to
-     * @param message - the message to send
-     * @throws {Error} - when the producer is not connected
-     */
-    async sendMessage(topic: string, message: string) {
-        await this.producer.send({
-            topic,
-            messages: [{ value: message }],
-        });
+   *
+   * @param topic - the topic to send the message to
+   * @param message - the message to send
+   * @throws {Error} - when the producer is not connected
+   */
+  async sendMessage(topic: string, message: string, key: string) {
+    const data: {value: string, key?: string} = {
+      value: message,
+    };
+    if(key){
+       data.key = key;
     }
+    await this.producer.send({
+      topic,
+      messages: [data],
+    });
+  }
 
   async consumeMessage(topics: string[], fromBeginning: boolean = false) {
     await this.consumer.subscribe({ topics, fromBeginning });
