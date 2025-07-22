@@ -111,9 +111,13 @@ export class OrderController {
     // todo: Error handling
     // todo: add logging
 
+    const customer = await customerModel.findOne({
+      _id: newOrder[0].customerId,
+    });
+
     const brokerMessage = {
       event_type: OrderEvents.ORDER_CREATE,
-      data: newOrder[0],
+      data: { ...newOrder[0], customerId: customer },
     };
 
     if (paymentMode === PaymentMode.CARD) {
@@ -124,7 +128,6 @@ export class OrderController {
         currency: "usd",
         idempotenencyKey: idempotencyKey as string,
       });
-
 
       await this.broker.sendMessage(
         "order",
@@ -317,10 +320,12 @@ export class OrderController {
       );
 
       //todo: send to kafka
-
-        const brokerMessage = {
+      const customer = await customerModel.findOne({
+        _id: updatedOrder.customerId,
+      });
+      const brokerMessage = {
         event_type: OrderEvents.ORDER_STATUS_UPDATE,
-        data: updatedOrder,
+        data: { ...updatedOrder.toObject(), customerId: customer },
       };
 
       await this.broker.sendMessage(
