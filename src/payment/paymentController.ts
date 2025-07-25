@@ -12,7 +12,6 @@ export class PaymentController {
   ) {}
   handleWebhook = async (req: Request, res: Response) => {
     const webhookBody = req.body;
-    console.log(req.body);
 
     if (webhookBody.type === "checkout.session.completed") {
       const verifiedSession = await this.paymentGw.getSession(
